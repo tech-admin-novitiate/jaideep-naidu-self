@@ -85,6 +85,14 @@ export interface RecommendationItem {
   highlight: string;
 }
 
+export interface PillarHeaderConfig {
+  id: string;
+  pillarTag: string;
+  title: string;
+  subtitle: string;
+  highlight: string;
+}
+
 export const PORTFOLIO_DATA = {
   profile: {
     name: 'Jaideep Naidu',
@@ -771,6 +779,65 @@ export const PORTFOLIO_DATA = {
         'Contains full executive summary, leadership highlights across Graph RAG, e-Assurance for S&OR, ALIM ($35M+ ecosystem), Palantir adoption, BJSS Digital Factory, Informa Citeline predictive AI, Capgemini FMCG architecture, and L&T naval defense backend.',
     },
   ] as UploadedCVDocument[],
+
+  pillarHeaders: {
+    hero: {
+      id: 'hero',
+      pillarTag: 'EXECUTIVE HERO',
+      title: 'Executive Engineering Leadership & Applied AI Overview',
+      subtitle: 'Profile & Quantitative Rigor',
+      highlight: 'BP Upstream Tools Lead · $300M+ Value · Quantic EMBA · 10k+ Engineers',
+    },
+    experience: {
+      id: 'experience',
+      pillarTag: 'PILLAR 01',
+      title: 'Executive Leadership & Engineering Track Record',
+      subtitle: '17 Years Executive Leadership',
+      highlight: 'BP Upstream · BJSS · Capgemini · 10k+ Engineers',
+    },
+    accomplishments: {
+      id: 'accomplishments',
+      pillarTag: 'PILLAR 02',
+      title: 'Accomplishments & Educational Qualifications',
+      subtitle: 'Verified ROI & Academic Rigor',
+      highlight: '$100M+ Value · EMBA & BE · TOGAF / CITA / DAMA / SAFe',
+    },
+    industries: {
+      id: 'industries',
+      pillarTag: 'PILLAR 03',
+      title: 'Breadth Across 7 Global Industries',
+      subtitle: 'Cross-Sector Versatility',
+      highlight: 'Energy · Pharma · Defense · Auto · FMCG · Semi · Digital',
+    },
+    'turnkey-tech': {
+      id: 'turnkey-tech',
+      pillarTag: 'PILLAR 04',
+      title: 'Delivering Turnkey Tech to Nascent Heavy Industry',
+      subtitle: 'Applied AI & Modernizing Heavy Industry',
+      highlight: 'Palantir Foundry · Graph RAG · S&OR e-Assurance · ISO-14224',
+    },
+    leadership: {
+      id: 'leadership',
+      pillarTag: 'PILLAR 05',
+      title: 'Human Connection as the Engine of Technological Change',
+      subtitle: 'Human Connection as Innovation Engine',
+      highlight: 'People-First · Psychological Safety · 100+ LinkedIn Recommendations',
+    },
+    hobbies: {
+      id: 'hobbies',
+      pillarTag: 'PILLAR 06',
+      title: 'Hobbies: 52 Sovereign Nations & Photography',
+      subtitle: 'Personal Passions & Perspective',
+      highlight: '52 Sovereign Nations · 6 Continents · 35mm Fine-Art Monographs',
+    },
+    contact: {
+      id: 'contact',
+      pillarTag: 'CONNECT & ADVISORY',
+      title: 'Connect & Advisory: Direct Dispatch',
+      subtitle: 'Direct Dispatch & Executive Mandates',
+      highlight: 'London HQ · Global Mobility · Direct Message · Official CV Dispatch',
+    },
+  } as Record<string, PillarHeaderConfig>,
 };
 
 const STORAGE_KEY = 'jaideep_portfolio_custom_content_v1';
@@ -781,7 +848,14 @@ export function loadPortfolioData(): typeof PORTFOLIO_DATA {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      return { ...PORTFOLIO_DATA, ...parsed };
+      return {
+        ...PORTFOLIO_DATA,
+        ...parsed,
+        pillarHeaders: {
+          ...PORTFOLIO_DATA.pillarHeaders,
+          ...(parsed.pillarHeaders || {}),
+        },
+      };
     }
   } catch (e) {
     console.error('Failed to load saved portfolio data', e);

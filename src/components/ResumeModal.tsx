@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileDown, ExternalLink, X, FileText, Check, Copy } from 'lucide-react';
+import { FileDown, ExternalLink, X, FileText, Check, Copy, Download, Briefcase, File } from 'lucide-react';
 import { PORTFOLIO_DATA } from '../data/portfolioData';
 
 interface ResumeModalProps {
@@ -13,7 +13,7 @@ export const ResumeModal: React.FC<ResumeModalProps> = ({
   onClose,
   data = PORTFOLIO_DATA,
 }) => {
-  const [viewMode, setViewMode] = useState<'preview' | 'executive'>('preview');
+  const [viewMode, setViewMode] = useState<'preview' | 'executive' | 'versions'>('preview');
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
@@ -70,6 +70,19 @@ export const ResumeModal: React.FC<ResumeModalProps> = ({
                 }`}
               >
                 Structured Summary
+              </button>
+              <button
+                onClick={() => setViewMode('versions')}
+                className={`px-3 py-1 rounded font-medium transition-colors flex items-center gap-1.5 ${
+                  viewMode === 'versions'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <span>Role Versions</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-700 font-mono">
+                  {data.uploadedCVFiles?.length || 0}
+                </span>
               </button>
             </div>
 
@@ -181,6 +194,80 @@ export const ResumeModal: React.FC<ResumeModalProps> = ({
                   <p><strong>Technical:</strong> Palantir Foundry Certified, AWS Certified Cloud Practitioner, Sun-Certified Java Programmer</p>
                   <p><strong>Management:</strong> PMP®, PRINCE2® Practitioner, MSP®, Leading SAFe® 5.0, PAL, CSPO, CSM</p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Role Versions & Archived CV Documents Mode */}
+          {viewMode === 'versions' && (
+            <div className="max-w-4xl mx-auto space-y-6 py-2">
+              <div className="p-5 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold uppercase tracking-wider">
+                  <FileDown className="w-3 h-3" />
+                  <span>Archived CV Versions &amp; Role-Specific Deliverables</span>
+                </div>
+                <h4 className="text-base font-bold text-slate-900">
+                  Specialized CV Versions &amp; In-Depth Role Responsibilities
+                </h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  These specialized CV editions and documents provide granular details regarding specific mandates, team topologies, budgets managed, technical deliverables, and domain nuances across Oil &amp; Gas, Defense, Pharma, and Enterprise Digital Transformation.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {data.uploadedCVFiles && data.uploadedCVFiles.length > 0 ? (
+                  data.uploadedCVFiles.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-indigo-300 transition-colors space-y-3"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                            <File className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h5 className="text-sm font-bold text-slate-900">
+                                {doc.versionLabel}
+                              </h5>
+                              <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">
+                                {doc.roleContext}
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-500 font-mono mt-0.5">
+                              {doc.fileName} · {doc.fileSize} · {doc.uploadDate}
+                            </div>
+                          </div>
+                        </div>
+
+                        {doc.fileData && (
+                          <a
+                            href={doc.fileData}
+                            download={doc.fileName}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shrink-0 shadow-2xs self-start"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download Version</span>
+                          </a>
+                        )}
+                      </div>
+
+                      {doc.extractedNotes && (
+                        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-700 leading-relaxed space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                            Specific Role Responsibilities &amp; Project Details:
+                          </span>
+                          <p>{doc.extractedNotes}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-8 rounded-2xl bg-white border border-slate-200 text-center text-xs text-slate-500">
+                    No additional role versions uploaded yet. Use the Editor Mode (lock icon in footer) to upload older CV versions.
+                  </div>
+                )}
               </div>
             </div>
           )}

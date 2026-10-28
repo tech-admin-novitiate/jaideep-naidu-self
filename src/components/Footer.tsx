@@ -22,7 +22,7 @@ export const Footer: React.FC<FooterProps> = ({
   };
 
   return (
-    <footer className="w-full bg-slate-100 border-t border-slate-200 py-12 text-slate-600">
+    <footer className="w-full bg-white/95 backdrop-blur-md border-t-2 border-slate-300 py-12 text-slate-600 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-200 pb-8">
           <div className="space-y-1">

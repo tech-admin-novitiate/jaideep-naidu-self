@@ -22,7 +22,7 @@ export const GeminiChatbot: React.FC<GeminiChatbotProps> = ({
     {
       id: 'init-1',
       sender: 'gemini',
-      text: "Hello! I am Jaideep's personal Gemini AI representative. Ask me anything about Jaideep's 17-year engineering leadership, Graph RAG systems at BP, Palantir Foundry data models, or his 52-country travels.",
+      text: 'Hello ! I am the Oracle. Ask me how Jaideep can help you....',
       timestamp: 'Just now',
     },
   ]);
@@ -33,10 +33,10 @@ export const GeminiChatbot: React.FC<GeminiChatbotProps> = ({
 
   const prePromptQuestions = [
     "What is Jaideep's biggest success?",
-    "What is Jai's best skills?",
+    "What are Jai's best skills ?",
     "How does Jaideep apply AI in Oil & Gas?",
     "What are his credentials & MBA?",
-    "Tell me about his 52 countries travel",
+    "Tell me what else does he do",
   ];
 
   const scrollToBottom = () => {
@@ -162,9 +162,16 @@ export const GeminiChatbot: React.FC<GeminiChatbotProps> = ({
         } else if (lower.includes('oil') || lower.includes('gas')) {
           fallbackText =
             "In Oil & Gas, Jaideep modernizes upstream asset operations by implementing Graph RAG for engineering standards, harmonizing data pipelines into ISO standards on Palantir (~$12M CAPEX avoidance), and rolling out e-Assurance for S&OR to save 15k+ auditor hours.";
-        } else if (lower.includes('travel') || lower.includes('countr') || lower.includes('52')) {
+        } else if (
+          lower.includes('travel') ||
+          lower.includes('countr') ||
+          lower.includes('52') ||
+          lower.includes('what else') ||
+          lower.includes('else does he do') ||
+          lower.includes('photograph')
+        ) {
           fallbackText =
-            "Jaideep has explored 52 sovereign nations across 6 continents. This global perspective helps him lead cross-cultural engineering squads across the UK, USA, Middle East, Africa, and India with deep empathy.";
+            "Outside work, Jaideep has explored 52 sovereign nations across 6 continents and is an avid 35mm fine-art photographer capturing maritime structures, brutalist geometry, and human stories. His global travel and creative perspective bring immense empathy and fresh thinking to enterprise challenges.";
         } else if (lower.includes('mba') || lower.includes('education') || lower.includes('certif')) {
           fallbackText =
             "Jaideep holds an Executive MBA from Quantic School of Business & Technology (2022) and a Bachelor of Engineering with Distinction (2008). He is certified in Palantir Foundry, AWS Cloud, PMP®, PRINCE2®, and Leading SAFe® 5.0.";
@@ -193,16 +200,16 @@ export const GeminiChatbot: React.FC<GeminiChatbotProps> = ({
       {
         id: 'init-reset',
         sender: 'gemini',
-        text: "Chat cleared. What would you like to know about Jaideep's experience, applied AI architectures, or credentials?",
+        text: 'Hello ! I am the Oracle. Ask me how Jaideep can help you....',
         timestamp: 'Just now',
       },
     ]);
   };
 
   return (
-    <section id="ai-assistant" className="w-full bg-slate-50/90 border-b border-slate-200 py-6 sm:py-8">
+    <section id="ai-assistant" className="w-full bg-transparent py-4 sm:py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-2xl bg-white border border-slate-200/90 shadow-sm overflow-hidden transition-all">
+        <div className="rounded-3xl bg-white/95 backdrop-blur-md border-2 border-slate-300/80 shadow-md overflow-hidden transition-all">
           {/* Header Bar */}
           <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-950 text-white">
             <div className="flex items-center gap-3">
@@ -214,14 +221,14 @@ export const GeminiChatbot: React.FC<GeminiChatbotProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm sm:text-base font-bold tracking-tight text-white flex items-center gap-2">
-                    <span>Ask Gemini About Jaideep</span>
+                    <span>Curious about Jaideep ?</span>
                     <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30">
                       Grounded AI
                     </span>
                   </h3>
                 </div>
                 <p className="text-xs text-slate-300 hidden sm:block">
-                  Specifically trained on Jaideep&rsquo;s verified CV, 17-yr leadership, and applied AI systems.
+                  Specifically trained on Jaideep&rsquo;s history only. Ask anything...
                 </p>
               </div>
             </div>
@@ -337,7 +344,7 @@ export const GeminiChatbot: React.FC<GeminiChatbotProps> = ({
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask Gemini about Jaideep's achievements, skills, or Oil & Gas tech..."
+                    placeholder="Curious about Jaideep ? Ask anything..."
                     disabled={isLoading}
                     className="w-full pl-3.5 pr-10 py-2.5 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-2xs"
                   />

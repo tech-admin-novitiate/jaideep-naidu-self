@@ -23,6 +23,9 @@ import {
   FileDown,
   Download,
   File,
+  Sliders,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   PORTFOLIO_DATA,
@@ -33,6 +36,7 @@ import {
   KnowledgeGraphNote,
   ExperienceItem,
   UploadedCVDocument,
+  PillarHeaderConfig,
 } from '../data/portfolioData';
 
 interface EditorModalProps {
@@ -61,6 +65,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
     | 'travel'
     | 'turnkey'
     | 'metrics'
+    | 'pillar-headers'
   >('knowledge-graph');
   const [formData, setFormData] = useState<typeof PORTFOLIO_DATA>(currentData);
   const [saveToast, setSaveToast] = useState<string>('');
@@ -122,9 +127,16 @@ export const EditorModal: React.FC<EditorModalProps> = ({
     fileData: '',
     extractedNotes: '',
   });
+  const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
 
   useEffect(() => {
-    setFormData(currentData);
+    setFormData({
+      ...currentData,
+      pillarHeaders: {
+        ...PORTFOLIO_DATA.pillarHeaders,
+        ...(currentData.pillarHeaders || {}),
+      },
+    });
   }, [currentData, isOpen]);
 
   if (!isOpen) return null;
@@ -288,44 +300,59 @@ export const EditorModal: React.FC<EditorModalProps> = ({
     }));
   };
 
-  // CV / Role file upload handler
+  // Process uploaded CV or role document
+  const processCVFile = (file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      alert('File size exceeds 20MB. Please upload a document under 20MB.');
+      return;
+    }
+    const sizeStr =
+      file.size > 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.round(file.size / 1024)} KB`;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewCVFile((prev) => ({
+        ...prev,
+        fileName: file.name,
+        fileSize: sizeStr,
+        fileData: reader.result as string,
+        versionLabel: prev.versionLabel || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
+      }));
+    };
+    reader.readAsDataURL(file);
+
+    // Auto-extract text if text or markdown
+    if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+      const textReader = new FileReader();
+      textReader.onloadend = () => {
+        if (typeof textReader.result === 'string') {
+          setNewCVFile((prev) => ({
+            ...prev,
+            extractedNotes: prev.extractedNotes || (textReader.result as string),
+          }));
+        }
+      };
+      textReader.readAsText(file);
+    }
+  };
+
+  // CV / Role file upload input handler
   const handleCVFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 20 * 1024 * 1024) {
-        alert('File size exceeds 20MB. Please upload a document under 20MB.');
-        return;
-      }
-      const sizeStr =
-        file.size > 1024 * 1024
-          ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-          : `${Math.round(file.size / 1024)} KB`;
+      processCVFile(file);
+    }
+  };
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewCVFile((prev) => ({
-          ...prev,
-          fileName: file.name,
-          fileSize: sizeStr,
-          fileData: reader.result as string,
-          versionLabel: prev.versionLabel || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
-        }));
-      };
-      reader.readAsDataURL(file);
-
-      // Auto-extract text if text or markdown
-      if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
-        const textReader = new FileReader();
-        textReader.onloadend = () => {
-          if (typeof textReader.result === 'string') {
-            setNewCVFile((prev) => ({
-              ...prev,
-              extractedNotes: prev.extractedNotes || textReader.result as string,
-            }));
-          }
-        };
-        textReader.readAsText(file);
-      }
+  // Drag-and-drop file upload handler
+  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingFile(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processCVFile(file);
     }
   };
 
@@ -368,6 +395,47 @@ export const EditorModal: React.FC<EditorModalProps> = ({
       ...prev,
       uploadedCVFiles: (prev.uploadedCVFiles || []).filter((c) => c.id !== id),
     }));
+  };
+
+  // Update a single field in a pillar's header config
+  const handleUpdatePillarHeader = (
+    key: string,
+    field: keyof PillarHeaderConfig,
+    value: string
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      pillarHeaders: {
+        ...prev.pillarHeaders,
+        [key]: {
+          ...(prev.pillarHeaders?.[key] || PORTFOLIO_DATA.pillarHeaders[key]),
+          [field]: value,
+        },
+      },
+    }));
+  };
+
+  // Reset a specific pillar's header back to default
+  const handleResetSinglePillarHeader = (key: string) => {
+    if (PORTFOLIO_DATA.pillarHeaders[key]) {
+      setFormData((prev) => ({
+        ...prev,
+        pillarHeaders: {
+          ...prev.pillarHeaders,
+          [key]: { ...PORTFOLIO_DATA.pillarHeaders[key] },
+        },
+      }));
+      setSaveToast(`Reset ${key} header to default.`);
+    }
+  };
+
+  // Reset all pillar headers back to default
+  const handleResetAllPillarHeaders = () => {
+    setFormData((prev) => ({
+      ...prev,
+      pillarHeaders: { ...PORTFOLIO_DATA.pillarHeaders },
+    }));
+    setSaveToast('Reset all pillar headers & highlights to defaults.');
   };
 
   return (
@@ -502,14 +570,36 @@ export const EditorModal: React.FC<EditorModalProps> = ({
 
               <button
                 onClick={() => setActiveTab('knowledge-graph')}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 ${
+                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center justify-between ${
                   activeTab === 'knowledge-graph'
                     ? 'bg-slate-900 text-white'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                <Sparkles className="w-4 h-4 text-blue-400" />
-                <span>AI Knowledge Graph ({formData.knowledgeGraphNotes?.length || 0})</span>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                  <span>AI Knowledge Graph</span>
+                </div>
+                <span className="text-[10px] bg-blue-900 text-blue-200 px-1.5 py-0.5 rounded font-mono">
+                  {formData.knowledgeGraphNotes?.length || 0}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('cv-files')}
+                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center justify-between ${
+                  activeTab === 'cv-files'
+                    ? 'bg-slate-900 text-white'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <FileDown className="w-4 h-4 text-indigo-500" />
+                  <span>Upload Role Files &amp; CVs</span>
+                </div>
+                <span className="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded-full font-mono font-bold">
+                  {formData.uploadedCVFiles?.length || 0}
+                </span>
               </button>
 
               <button
@@ -542,30 +632,18 @@ export const EditorModal: React.FC<EditorModalProps> = ({
 
               <button
                 onClick={() => setActiveTab('travel')}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 ${
+                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center justify-between ${
                   activeTab === 'travel'
                     ? 'bg-slate-900 text-white'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                <Compass className="w-4 h-4 text-sky-500" />
-                <span>Hobby Travel details</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('cv-files')}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center justify-between ${
-                  activeTab === 'cv-files'
-                    ? 'bg-slate-900 text-white'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
                 <div className="flex items-center gap-2">
-                  <FileDown className="w-4 h-4 text-indigo-500" />
-                  <span>Older CVs &amp; Role Files</span>
+                  <Compass className="w-4 h-4 text-sky-500" />
+                  <span>Hobby Travel details</span>
                 </div>
-                <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-mono">
-                  {formData.uploadedCVFiles?.length || 0}
+                <span className="text-[10px] text-slate-500 font-mono">
+                  52 Nations
                 </span>
               </button>
 
@@ -620,27 +698,262 @@ export const EditorModal: React.FC<EditorModalProps> = ({
                 <Trophy className="w-4 h-4 text-blue-500" />
                 <span>Hero Metrics Strip</span>
               </button>
+
+              <div className="text-[10px] font-bold text-slate-400 px-3 pt-3 py-1 uppercase tracking-wider">
+                Pillar Architecture
+              </div>
+
+              <button
+                onClick={() => setActiveTab('pillar-headers')}
+                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center justify-between ${
+                  activeTab === 'pillar-headers'
+                    ? 'bg-slate-900 text-white'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-emerald-500" />
+                  <span>Pillar Headers &amp; Highlights</span>
+                </div>
+                <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-mono">
+                  8
+                </span>
+              </button>
             </div>
 
             {/* Main Form Content Pane */}
             <div className="flex-1 p-6 overflow-y-auto space-y-6 bg-white">
-              {/* ================= TAB 1: KNOWLEDGE GRAPH ENRICHMENT ================= */}
-              {activeTab === 'knowledge-graph' && (
-                <div className="space-y-6 max-w-4xl">
+              {/* ================= TAB 1: KNOWLEDGE GRAPH ENRICHMENT & FILE INGESTION ================= */}
+              {(activeTab === 'knowledge-graph' || activeTab === 'cv-files') && (
+                <div className="space-y-8 max-w-4xl">
                   <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider mb-1">
+                      <Sparkles className="w-3 h-3 text-blue-600" />
+                      <span>AI Knowledge Graph &amp; Grounded Context Engine</span>
+                    </div>
                     <h4 className="text-base font-bold text-slate-900">
-                      AI Knowledge Graph &amp; Specific Timelines
+                      AI Knowledge Graph &amp; Role Document Archive
                     </h4>
                     <p className="text-xs text-slate-500 mt-1">
-                      Add milestone dates, specific achievements, and deep technical competencies. These directly train the on-page Gemini chatbot to market Jaideep for executive roles.
+                      Enrich the Knowledge Graph grounding Jaideep&rsquo;s Gemini AI chatbot. Upload older versions of the CV with varying levels of detail about each role and responsibilities, and inject granular milestone nodes.
                     </p>
+                  </div>
+
+                  {/* ================= SECTION: UPLOAD FILES (OLDER CV VERSIONS & ROLE RESPONSIBILITIES) ================= */}
+                  <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-blue-50/40 to-slate-50 border border-indigo-200/80 shadow-xs space-y-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold uppercase tracking-wider mb-1">
+                          <FileDown className="w-3 h-3" />
+                          <span>Knowledge Graph File Ingestion</span>
+                        </div>
+                        <h5 className="text-sm font-bold text-slate-900">
+                          Upload Files &amp; Older CV Versions
+                        </h5>
+                        <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                          Upload older versions of the CV with varying levels of relevant detail about each role and responsibilities. These files and detailed notes are ingested into the AI Knowledge Graph so the chatbot can market Jaideep for any role.
+                        </p>
+                      </div>
+                      <span className="text-xs font-mono font-semibold px-2.5 py-1 bg-white border border-indigo-200 rounded-lg text-indigo-700 shrink-0">
+                        {formData.uploadedCVFiles?.length || 0} file(s) archived
+                      </span>
+                    </div>
+
+                    {/* File Upload Box */}
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDraggingFile(true);
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        setIsDraggingFile(false);
+                      }}
+                      onDrop={handleFileDrop}
+                      className={`p-5 rounded-xl border-2 border-dashed transition-all space-y-4 ${
+                        isDraggingFile
+                          ? 'border-indigo-600 bg-indigo-50 shadow-md scale-[1.01]'
+                          : 'border-indigo-200 hover:border-indigo-400 bg-white'
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                            <Upload className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-slate-900">
+                              Choose or Drag &amp; Drop a CV / Role Document to Upload
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              Supports PDF, DOC, DOCX, TXT, Markdown (up to 20MB) — older CV versions with role details
+                            </div>
+                          </div>
+                        </div>
+
+                        <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors shrink-0">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Select Document</span>
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx,.txt,.md,.rtf"
+                            onChange={handleCVFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+
+                      {newCVFile.fileName && (
+                        <div className="p-2.5 rounded-lg bg-indigo-50/80 border border-indigo-100 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2 text-indigo-950 font-medium truncate">
+                            <File className="w-4 h-4 text-indigo-600 shrink-0" />
+                            <span className="truncate">{newCVFile.fileName}</span>
+                            <span className="text-[10px] text-indigo-600 font-mono">({newCVFile.fileSize})</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setNewCVFile({ ...newCVFile, fileName: '', fileSize: '', fileData: '' })}
+                            className="text-slate-400 hover:text-rose-600 ml-2"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold text-slate-700">
+                            Document / CV Version Title
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 2021 Senior Technical PM CV - BP Subsea & Digital Transformation"
+                            value={newCVFile.versionLabel}
+                            onChange={(e) => setNewCVFile({ ...newCVFile, versionLabel: e.target.value })}
+                            className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold text-slate-700">
+                            Role, Domain &amp; Team Context
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. BP Upstream Deepwater · Remote Operations · Team of 35"
+                            value={newCVFile.roleContext}
+                            onChange={(e) => setNewCVFile({ ...newCVFile, roleContext: e.target.value })}
+                            className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-700 flex items-center justify-between">
+                          <span>Specific Role Responsibilities &amp; Granular Details (AI Knowledge Context)</span>
+                          <span className="text-[10px] text-slate-400 font-normal">Grounded directly for Gemini AI chatbot</span>
+                        </label>
+                        <textarea
+                          rows={4}
+                          placeholder="Paste or enter detailed role responsibilities, specific team sizes, technical deliverables, operational milestones, budgets managed, methodologies (Scrum/Palantir/OT/IT), and project nuances from this version..."
+                          value={newCVFile.extractedNotes}
+                          onChange={(e) => setNewCVFile({ ...newCVFile, extractedNotes: e.target.value })}
+                          className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 leading-relaxed font-sans"
+                        />
+                      </div>
+
+                      <div className="flex justify-end pt-1">
+                        <button
+                          type="button"
+                          onClick={handleAddCVFile}
+                          className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add File to Knowledge Graph</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Active Uploaded Files List */}
+                    <div className="space-y-3 pt-2">
+                      <div className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center justify-between">
+                        <span>Archived CV Versions &amp; Role Files ({formData.uploadedCVFiles?.length || 0})</span>
+                        <span className="text-[11px] font-normal text-slate-500">Available to AI &amp; visitors</span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {formData.uploadedCVFiles && formData.uploadedCVFiles.length > 0 ? (
+                          formData.uploadedCVFiles.map((doc) => (
+                            <div
+                              key={doc.id}
+                              className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs hover:border-indigo-300 transition-colors flex flex-col sm:flex-row sm:items-start justify-between gap-3"
+                            >
+                              <div className="flex items-start gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                                  <FileText className="w-4 h-4" />
+                                </div>
+                                <div className="space-y-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h6 className="text-xs font-bold text-slate-900 truncate">
+                                      {doc.versionLabel}
+                                    </h6>
+                                    <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-medium">
+                                      {doc.roleContext}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-mono">
+                                      {doc.uploadDate}
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2">
+                                    <span>{doc.fileName}</span>
+                                    <span>·</span>
+                                    <span>{doc.fileSize}</span>
+                                  </div>
+                                  {doc.extractedNotes && (
+                                    <p className="text-[11px] text-slate-600 line-clamp-2 bg-slate-50 p-2 rounded border border-slate-100 mt-1 italic">
+                                      &ldquo;{doc.extractedNotes}&rdquo;
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                                {doc.fileData && (
+                                  <a
+                                    href={doc.fileData}
+                                    download={doc.fileName}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors"
+                                    title="Download file"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                    <span>Download</span>
+                                  </a>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCVFile(doc.id)}
+                                  className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                                  title="Delete document"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+                            No older CV versions uploaded yet. Upload your first document above to enrich the Knowledge Graph.
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Add New Knowledge Node Form */}
                   <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
                     <div className="flex items-center gap-2 text-xs font-bold text-blue-700">
                       <Plus className="w-4 h-4" />
-                      <span>ADD NEW KNOWLEDGE GRAPH NODE</span>
+                      <span>ADD NEW STRUCTURED KNOWLEDGE NODE</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1125,212 +1438,21 @@ export const EditorModal: React.FC<EditorModalProps> = ({
                 </div>
               )}
 
-              {/* ================= TAB 4: HOBBY TRAVEL DETAILS & ROLE FILES ================= */}
-              {(activeTab === 'travel' || activeTab === 'cv-files') && (
-                <div className="space-y-8 max-w-4xl">
+              {/* ================= TAB 4: HOBBY TRAVEL DETAILS ================= */}
+              {activeTab === 'travel' && (
+                <div className="space-y-6 max-w-4xl">
                   <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-bold uppercase tracking-wider mb-1">
+                      <Compass className="w-3 h-3" />
+                      <span>Pillar 06 · Global Horizons</span>
+                    </div>
                     <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
                       <Compass className="w-5 h-5 text-sky-500" />
-                      <span>Hobby Travel details &amp; Role Document Archive</span>
+                      <span>Hobby Travel details</span>
                     </h4>
                     <p className="text-xs text-slate-500 mt-1">
-                      Upload older versions of Jaideep&rsquo;s CV with varying levels of detail about each role and responsibilities, manage 52 sovereign nations travel exploration, and enrich the AI Knowledge Graph.
+                      Manage your 52 sovereign nations exploration across 6 continents, regional lists, and leadership travel perspective narrative.
                     </p>
-                  </div>
-
-                  {/* ================= SECTION: UPLOAD FILES (OLDER CV VERSIONS & ROLE RESPONSIBILITIES) ================= */}
-                  <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-blue-50/40 to-slate-50 border border-indigo-200/80 shadow-xs space-y-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold uppercase tracking-wider mb-1">
-                          <FileDown className="w-3 h-3" />
-                          <span>Knowledge Graph File Ingestion</span>
-                        </div>
-                        <h5 className="text-sm font-bold text-slate-900">
-                          Upload Files &amp; Older CV Versions
-                        </h5>
-                        <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                          Upload older versions of the CV with varying levels of relevant detail about each role and responsibilities. These files and detailed notes are ingested into the AI Knowledge Graph so the chatbot can market Jaideep for any role.
-                        </p>
-                      </div>
-                      <span className="text-xs font-mono font-semibold px-2.5 py-1 bg-white border border-indigo-200 rounded-lg text-indigo-700 shrink-0">
-                        {formData.uploadedCVFiles?.length || 0} file(s) archived
-                      </span>
-                    </div>
-
-                    {/* File Upload Box */}
-                    <div className="p-4 rounded-xl bg-white border-2 border-dashed border-indigo-200 hover:border-indigo-400 transition-colors space-y-4">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-                            <Upload className="w-6 h-6" />
-                          </div>
-                          <div>
-                            <div className="text-xs font-bold text-slate-900">
-                              Choose a CV or Role Document to Upload
-                            </div>
-                            <div className="text-[11px] text-slate-500">
-                              Supports PDF, DOC, DOCX, TXT, Markdown (up to 20MB)
-                            </div>
-                          </div>
-                        </div>
-
-                        <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors shrink-0">
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Select Document</span>
-                          <input
-                            type="file"
-                            accept=".pdf,.doc,.docx,.txt,.md,.rtf"
-                            onChange={handleCVFileUpload}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-
-                      {newCVFile.fileName && (
-                        <div className="p-2.5 rounded-lg bg-indigo-50/80 border border-indigo-100 flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2 text-indigo-950 font-medium truncate">
-                            <File className="w-4 h-4 text-indigo-600 shrink-0" />
-                            <span className="truncate">{newCVFile.fileName}</span>
-                            <span className="text-[10px] text-indigo-600 font-mono">({newCVFile.fileSize})</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setNewCVFile({ ...newCVFile, fileName: '', fileSize: '', fileData: '' })}
-                            className="text-slate-400 hover:text-rose-600 ml-2"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-semibold text-slate-700">
-                            Document / CV Version Title
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 2021 Senior Technical PM CV - BP Subsea & Digital Transformation"
-                            value={newCVFile.versionLabel}
-                            onChange={(e) => setNewCVFile({ ...newCVFile, versionLabel: e.target.value })}
-                            className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-semibold text-slate-700">
-                            Role, Domain &amp; Team Context
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. BP Upstream Deepwater · Remote Operations · Team of 35"
-                            value={newCVFile.roleContext}
-                            onChange={(e) => setNewCVFile({ ...newCVFile, roleContext: e.target.value })}
-                            className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-semibold text-slate-700 flex items-center justify-between">
-                          <span>Specific Role Responsibilities &amp; Granular Details (AI Knowledge Context)</span>
-                          <span className="text-[10px] text-slate-400 font-normal">Grounded directly for Gemini AI chatbot</span>
-                        </label>
-                        <textarea
-                          rows={4}
-                          placeholder="Paste or enter detailed role responsibilities, specific team sizes, technical deliverables, operational milestones, budgets managed, methodologies (Scrum/Palantir/OT/IT), and project nuances from this version..."
-                          value={newCVFile.extractedNotes}
-                          onChange={(e) => setNewCVFile({ ...newCVFile, extractedNotes: e.target.value })}
-                          className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 leading-relaxed font-sans"
-                        />
-                      </div>
-
-                      <div className="flex justify-end pt-1">
-                        <button
-                          type="button"
-                          onClick={handleAddCVFile}
-                          className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Add File to Knowledge Graph</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Active Uploaded Files List */}
-                    <div className="space-y-3 pt-2">
-                      <div className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center justify-between">
-                        <span>Archived CV Versions &amp; Role Files ({formData.uploadedCVFiles?.length || 0})</span>
-                        <span className="text-[11px] font-normal text-slate-500">Available to AI &amp; visitors</span>
-                      </div>
-
-                      <div className="space-y-2">
-                        {formData.uploadedCVFiles && formData.uploadedCVFiles.length > 0 ? (
-                          formData.uploadedCVFiles.map((doc) => (
-                            <div
-                              key={doc.id}
-                              className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs hover:border-indigo-300 transition-colors flex flex-col sm:flex-row sm:items-start justify-between gap-3"
-                            >
-                              <div className="flex items-start gap-3 min-w-0">
-                                <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
-                                  <FileText className="w-4 h-4" />
-                                </div>
-                                <div className="space-y-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <h6 className="text-xs font-bold text-slate-900 truncate">
-                                      {doc.versionLabel}
-                                    </h6>
-                                    <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-medium">
-                                      {doc.roleContext}
-                                    </span>
-                                    <span className="text-[10px] text-slate-400 font-mono">
-                                      {doc.uploadDate}
-                                    </span>
-                                  </div>
-                                  <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2">
-                                    <span>{doc.fileName}</span>
-                                    <span>·</span>
-                                    <span>{doc.fileSize}</span>
-                                  </div>
-                                  {doc.extractedNotes && (
-                                    <p className="text-[11px] text-slate-600 line-clamp-2 bg-slate-50 p-2 rounded border border-slate-100 mt-1 italic">
-                                      &ldquo;{doc.extractedNotes}&rdquo;
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                                {doc.fileData && (
-                                  <a
-                                    href={doc.fileData}
-                                    download={doc.fileName}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors"
-                                    title="Download file"
-                                  >
-                                    <Download className="w-3.5 h-3.5" />
-                                    <span>Download</span>
-                                  </a>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteCVFile(doc.id)}
-                                  className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                                  title="Delete document"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
-                            No older CV versions uploaded yet. Upload your first document above to enrich the Knowledge Graph.
-                          </div>
-                        )}
-                      </div>
-                    </div>
                   </div>
 
                   {/* ================= SECTION: 52 SOVEREIGN NATIONS & GLOBAL PERSPECTIVE ================= */}
@@ -1796,6 +1918,223 @@ export const EditorModal: React.FC<EditorModalProps> = ({
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ================= TAB 10: PILLAR HEADERS & HIGHLIGHTS ================= */}
+              {activeTab === 'pillar-headers' && (
+                <div className="space-y-6 max-w-4xl">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                    <div>
+                      <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <span>Pillar Headers &amp; Highlights Editor</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-mono font-medium">
+                          8 Sections
+                        </span>
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Customize the titles, badges, and header summary highlights for each collapsible pillar and section.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleResetAllPillarHeaders}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors whitespace-nowrap self-start sm:self-auto"
+                      title="Reset all pillar headers to default CV values"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reset All Headers</span>
+                    </button>
+                  </div>
+
+                  {/* List of 8 Pillar Header Config Cards */}
+                  <div className="space-y-6">
+                    {[
+                      {
+                        key: 'hero',
+                        name: 'Executive Hero Overview',
+                        gradient: 'bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 text-white',
+                        badgeBorder: 'border-slate-700',
+                      },
+                      {
+                        key: 'experience',
+                        name: 'Pillar 01: Experience Track Record',
+                        gradient: 'bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-950 text-white',
+                        badgeBorder: 'border-blue-400/30',
+                      },
+                      {
+                        key: 'accomplishments',
+                        name: 'Pillar 02: Accomplishments & Qualifications',
+                        gradient: 'bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 text-white',
+                        badgeBorder: 'border-emerald-400/30',
+                      },
+                      {
+                        key: 'industries',
+                        name: 'Pillar 03: 7 Global Industries',
+                        gradient: 'bg-gradient-to-r from-slate-950 via-indigo-950 to-indigo-900 text-white',
+                        badgeBorder: 'border-indigo-400/30',
+                      },
+                      {
+                        key: 'turnkey-tech',
+                        name: 'Pillar 04: Turnkey AI & Modernization',
+                        gradient: 'bg-gradient-to-r from-cyan-950 via-teal-950 to-slate-900 text-white',
+                        badgeBorder: 'border-teal-400/30',
+                      },
+                      {
+                        key: 'leadership',
+                        name: 'Pillar 05: Human-Led Leadership',
+                        gradient: 'bg-gradient-to-r from-amber-950 via-amber-900 to-stone-900 text-white',
+                        badgeBorder: 'border-amber-400/30',
+                      },
+                      {
+                        key: 'hobbies',
+                        name: 'Pillar 06: Hobbies & Photography',
+                        gradient: 'bg-gradient-to-r from-rose-950 via-rose-900 to-slate-950 text-white',
+                        badgeBorder: 'border-rose-400/30',
+                      },
+                      {
+                        key: 'contact',
+                        name: 'Connect & Advisory (Direct Dispatch)',
+                        gradient: 'bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 text-white',
+                        badgeBorder: 'border-blue-400/30',
+                      },
+                    ].map((sectionMeta) => {
+                      const cfg =
+                        formData.pillarHeaders?.[sectionMeta.key] ||
+                        PORTFOLIO_DATA.pillarHeaders[sectionMeta.key] || {
+                          id: sectionMeta.key,
+                          pillarTag: sectionMeta.name,
+                          title: sectionMeta.name,
+                          subtitle: '',
+                          highlight: '',
+                        };
+
+                      return (
+                        <div
+                          key={sectionMeta.key}
+                          className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-4 shadow-2xs hover:border-slate-300 transition-all"
+                        >
+                          <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-slate-900">
+                                {sectionMeta.name}
+                              </span>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white text-slate-600 border border-slate-200">
+                                id: #{sectionMeta.key}
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() => handleResetSinglePillarHeader(sectionMeta.key)}
+                              className="text-[11px] font-medium text-slate-500 hover:text-slate-800 flex items-center gap-1 transition-colors"
+                              title="Reset this pillar header to default"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              <span>Reset to Default</span>
+                            </button>
+                          </div>
+
+                          {/* Editable Inputs Grid */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5 sm:col-span-2">
+                              <label className="text-xs font-semibold text-slate-700">
+                                Pillar Title
+                              </label>
+                              <input
+                                type="text"
+                                value={cfg.title}
+                                onChange={(e) =>
+                                  handleUpdatePillarHeader(sectionMeta.key, 'title', e.target.value)
+                                }
+                                placeholder="Enter pillar title..."
+                                className="w-full px-3 py-2 text-xs font-bold bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-600"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5 sm:col-span-2">
+                              <label className="text-xs font-semibold text-slate-700">
+                                Header Highlight Summary (Displayed in collapsed &amp; expanded header bar)
+                              </label>
+                              <input
+                                type="text"
+                                value={cfg.highlight}
+                                onChange={(e) =>
+                                  handleUpdatePillarHeader(sectionMeta.key, 'highlight', e.target.value)
+                                }
+                                placeholder="e.g. BP Upstream · BJSS · Capgemini · 10k+ Engineers..."
+                                className="w-full px-3 py-2 text-xs font-medium bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-600 font-mono text-[11px]"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700">
+                                Pillar Tag / Badge
+                              </label>
+                              <input
+                                type="text"
+                                value={cfg.pillarTag}
+                                onChange={(e) =>
+                                  handleUpdatePillarHeader(sectionMeta.key, 'pillarTag', e.target.value)
+                                }
+                                placeholder="e.g. PILLAR 01..."
+                                className="w-full px-3 py-2 text-xs font-medium bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-600 font-mono"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700">
+                                Subtitle / Discipline Label
+                              </label>
+                              <input
+                                type="text"
+                                value={cfg.subtitle}
+                                onChange={(e) =>
+                                  handleUpdatePillarHeader(sectionMeta.key, 'subtitle', e.target.value)
+                                }
+                                placeholder="e.g. 17 Years Executive Leadership..."
+                                className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-600"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Live Visual Header Preview Box */}
+                          <div className="space-y-1.5 pt-1">
+                            <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                              Live Header Bar Preview
+                            </div>
+                            <div
+                              className={`p-4 rounded-xl ${sectionMeta.gradient} flex items-center justify-between gap-4 shadow-sm border border-black/20`}
+                            >
+                              <div className="space-y-1 truncate">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-white/20 border ${sectionMeta.badgeBorder}`}
+                                  >
+                                    {cfg.pillarTag || 'TAG'}
+                                  </span>
+                                  <span className="text-xs opacity-80 truncate hidden sm:inline">
+                                    {cfg.subtitle}
+                                  </span>
+                                </div>
+                                <div className="font-bold text-sm sm:text-base tracking-tight truncate">
+                                  {cfg.title || 'Untitled Pillar'}
+                                </div>
+                              </div>
+
+                              <div className="shrink-0 flex items-center gap-2">
+                                <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-black/40 border border-white/20 truncate max-w-[200px] hidden md:inline">
+                                  {cfg.highlight || 'No highlight defined'}
+                                </span>
+                                <div className="p-1 rounded bg-white/10 text-white/80">
+                                  <ChevronDown className="w-4 h-4" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

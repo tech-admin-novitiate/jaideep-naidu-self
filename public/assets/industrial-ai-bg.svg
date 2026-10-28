@@ -1,0 +1,275 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <defs>
+    <!-- Subtle CAD grid pattern -->
+    <pattern id="cadGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#cbd5e1" stroke-width="0.75" stroke-opacity="0.5" />
+      <circle cx="0" cy="0" r="1.2" fill="#94a3b8" fill-opacity="0.6" />
+      <circle cx="40" cy="40" r="1.2" fill="#94a3b8" fill-opacity="0.6" />
+    </pattern>
+
+    <!-- Linear gradients for circuit bus and pipeline flows -->
+    <linearGradient id="chipGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#334155" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#1e293b" stop-opacity="0.22" />
+    </linearGradient>
+
+    <linearGradient id="pipeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#475569" stop-opacity="0.3" />
+      <stop offset="50%" stop-color="#64748b" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#475569" stop-opacity="0.3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Solid technical substrate background -->
+  <rect width="800" height="800" fill="#edf2f7" />
+
+  <!-- Underlying CAD Grid -->
+  <rect width="800" height="800" fill="url(#cadGrid)" />
+
+  <!-- ================= OIL & GAS INFRASTRUCTURE LAYER ================= -->
+  <!-- Main High-Pressure Trunkline (horizontal across y=220) -->
+  <g id="pipeline-trunk-1">
+    <!-- Pipe body with outer and inner walls -->
+    <rect x="0" y="212" width="800" height="16" fill="url(#pipeGrad)" stroke="#64748b" stroke-width="1.2" stroke-opacity="0.5" />
+    <line x1="0" y1="220" x2="800" y2="220" stroke="#94a3b8" stroke-width="1" stroke-dasharray="8 6" stroke-opacity="0.6" />
+
+    <!-- Flange Joints & Bolted Couplers -->
+    <g stroke="#475569" stroke-width="1.2" fill="#cbd5e1" fill-opacity="0.8">
+      <rect x="75" y="208" width="6" height="24" rx="1" />
+      <rect x="83" y="208" width="6" height="24" rx="1" />
+      <circle cx="78" cy="212" r="1" fill="#1e293b" />
+      <circle cx="78" cy="228" r="1" fill="#1e293b" />
+      <circle cx="86" cy="212" r="1" fill="#1e293b" />
+      <circle cx="86" cy="228" r="1" fill="#1e293b" />
+
+      <rect x="475" y="208" width="6" height="24" rx="1" />
+      <rect x="483" y="208" width="6" height="24" rx="1" />
+      <circle cx="478" cy="212" r="1" fill="#1e293b" />
+      <circle cx="478" cy="228" r="1" fill="#1e293b" />
+      <circle cx="486" cy="212" r="1" fill="#1e293b" />
+      <circle cx="486" cy="228" r="1" fill="#1e293b" />
+    </g>
+
+    <!-- P&ID Gate Valve Symbol on main line at x=280 -->
+    <g id="gate-valve-1" transform="translate(260, 220)">
+      <!-- Valve triangles -->
+      <polygon points="0,-10 20,0 0,10" fill="#94a3b8" fill-opacity="0.5" stroke="#475569" stroke-width="1.2" />
+      <polygon points="40,-10 20,0 40,10" fill="#94a3b8" fill-opacity="0.5" stroke="#475569" stroke-width="1.2" />
+      <!-- Stem and actuator handwheel -->
+      <line x1="20" y1="0" x2="20" y2="-22" stroke="#475569" stroke-width="1.5" />
+      <ellipse cx="20" cy="-22" rx="12" ry="3.5" fill="none" stroke="#0284c7" stroke-width="1.5" />
+      <!-- P&ID Instrument Tag -->
+      <circle cx="20" cy="-38" r="11" fill="#ffffff" fill-opacity="0.9" stroke="#0284c7" stroke-width="1.2" />
+      <line x1="9" y1="-38" x2="31" y2="-38" stroke="#0284c7" stroke-width="0.8" />
+      <text x="20" y="-41" font-family="monospace" font-size="6.5" font-weight="bold" fill="#0369a1" text-anchor="middle">FCV</text>
+      <text x="20" y="-31" font-family="monospace" font-size="6.5" font-weight="bold" fill="#0369a1" text-anchor="middle">401</text>
+    </g>
+
+    <!-- Flow Direction Arrows -->
+    <path d="M 170 216 L 178 220 L 170 224" fill="none" stroke="#0284c7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M 182 216 L 190 220 L 182 224" fill="none" stroke="#0284c7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M 580 216 L 588 220 L 580 224" fill="none" stroke="#0284c7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <!-- Vertical Offshore Production Riser (x=680, from y=0 to y=800) -->
+  <g id="vertical-riser">
+    <rect x="674" y="0" width="12" height="800" fill="url(#pipeGrad)" stroke="#64748b" stroke-width="1.2" stroke-opacity="0.45" />
+    <line x1="680" y1="0" x2="680" y2="800" stroke="#94a3b8" stroke-width="1" stroke-dasharray="10 8" stroke-opacity="0.5" />
+
+    <!-- Flange on vertical riser -->
+    <rect x="670" y="110" width="20" height="6" rx="1" fill="#cbd5e1" stroke="#475569" stroke-width="1.2" />
+    <rect x="670" y="118" width="20" height="6" rx="1" fill="#cbd5e1" stroke="#475569" stroke-width="1.2" />
+
+    <rect x="670" y="520" width="20" height="6" rx="1" fill="#cbd5e1" stroke="#475569" stroke-width="1.2" />
+    <rect x="670" y="528" width="20" height="6" rx="1" fill="#cbd5e1" stroke="#475569" stroke-width="1.2" />
+
+    <!-- Subsea Manifold Junction Box at (680, 220) -->
+    <rect x="666" y="206" width="28" height="28" rx="3" fill="#334155" fill-opacity="0.85" stroke="#0284c7" stroke-width="1.5" />
+    <circle cx="680" cy="220" r="5" fill="#38bdf8" fill-opacity="0.8" />
+  </g>
+
+  <!-- Secondary Distribution Line (diagonal 45° manifold elbow) -->
+  <g id="diagonal-manifold">
+    <path d="M 80 220 L 80 380 L 140 440 L 320 440" fill="none" stroke="#64748b" stroke-width="4" stroke-opacity="0.5" stroke-linejoin="round" />
+    <!-- Pressure Transmitter Tag at (230, 440) -->
+    <circle cx="230" cy="415" r="10" fill="#ffffff" fill-opacity="0.9" stroke="#d97706" stroke-width="1.2" />
+    <line x1="230" y1="425" x2="230" y2="438" stroke="#d97706" stroke-width="1.2" />
+    <line x1="220" y1="415" x2="240" y2="415" stroke="#d97706" stroke-width="0.8" />
+    <text x="230" y="412" font-family="monospace" font-size="6" font-weight="bold" fill="#b45309" text-anchor="middle">PT</text>
+    <text x="230" y="422" font-family="monospace" font-size="6" font-weight="bold" fill="#b45309" text-anchor="middle">208</text>
+  </g>
+
+  <!-- ================= AI / SILICON CHIP ARCHITECTURE LAYER ================= -->
+  <!-- Central AI Microprocessor Package at (380, 520) -->
+  <g id="ai-processor-chip" transform="translate(360, 480)">
+    <!-- Outer IC Package boundary -->
+    <rect x="0" y="0" width="160" height="160" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="2" stroke-opacity="0.85" />
+    <rect x="6" y="6" width="148" height="148" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 2" />
+
+    <!-- Corner indexing notch -->
+    <path d="M 0 16 A 16 16 0 0 1 16 0" fill="#334155" fill-opacity="0.3" />
+
+    <!-- Silicon Die in center -->
+    <rect x="35" y="35" width="90" height="90" rx="4" fill="url(#chipGrad)" stroke="#2563eb" stroke-width="1.5" stroke-opacity="0.7" />
+
+    <!-- Silicon Die Internal Mesh / Core Labels -->
+    <line x1="80" y1="35" x2="80" y2="125" stroke="#3b82f6" stroke-width="0.8" stroke-opacity="0.5" stroke-dasharray="3 3" />
+    <line x1="35" y1="80" x2="125" y2="80" stroke="#3b82f6" stroke-width="0.8" stroke-opacity="0.5" stroke-dasharray="3 3" />
+
+    <text x="80" y="68" font-family="monospace" font-size="8.5" font-weight="bold" fill="#1e3a8a" text-anchor="middle" letter-spacing="1">GRAPH RAG</text>
+    <text x="80" y="82" font-family="monospace" font-size="7" font-weight="bold" fill="#0284c7" text-anchor="middle" letter-spacing="0.5">PALANTIR OT/IT</text>
+    <text x="80" y="96" font-family="monospace" font-size="6.5" font-weight="semibold" fill="#475569" text-anchor="middle">ISO 14224 · NPU</text>
+
+    <!-- IC External Pins (North side) -->
+    <g fill="#64748b" opacity="0.8">
+      <rect x="25" y="-6" width="6" height="8" rx="1" />
+      <rect x="40" y="-6" width="6" height="8" rx="1" />
+      <rect x="55" y="-6" width="6" height="8" rx="1" />
+      <rect x="70" y="-6" width="6" height="8" rx="1" />
+      <rect x="85" y="-6" width="6" height="8" rx="1" />
+      <rect x="100" y="-6" width="6" height="8" rx="1" />
+      <rect x="115" y="-6" width="6" height="8" rx="1" />
+      <rect x="130" y="-6" width="6" height="8" rx="1" />
+
+      <!-- South side -->
+      <rect x="25" y="158" width="6" height="8" rx="1" />
+      <rect x="40" y="158" width="6" height="8" rx="1" />
+      <rect x="55" y="158" width="6" height="8" rx="1" />
+      <rect x="70" y="158" width="6" height="8" rx="1" />
+      <rect x="85" y="158" width="6" height="8" rx="1" />
+      <rect x="100" y="158" width="6" height="8" rx="1" />
+      <rect x="115" y="158" width="6" height="8" rx="1" />
+      <rect x="130" y="158" width="6" height="8" rx="1" />
+
+      <!-- West side -->
+      <rect x="-6" y="25" width="8" height="6" rx="1" />
+      <rect x="-6" y="40" width="8" height="6" rx="1" />
+      <rect x="-6" y="55" width="8" height="6" rx="1" />
+      <rect x="-6" y="70" width="8" height="6" rx="1" />
+      <rect x="-6" y="85" width="8" height="6" rx="1" />
+      <rect x="-6" y="100" width="8" height="6" rx="1" />
+      <rect x="-6" y="115" width="8" height="6" rx="1" />
+      <rect x="-6" y="130" width="8" height="6" rx="1" />
+
+      <!-- East side -->
+      <rect x="158" y="25" width="8" height="6" rx="1" />
+      <rect x="158" y="40" width="8" height="6" rx="1" />
+      <rect x="158" y="55" width="8" height="6" rx="1" />
+      <rect x="158" y="70" width="8" height="6" rx="1" />
+      <rect x="158" y="85" width="8" height="6" rx="1" />
+      <rect x="158" y="100" width="8" height="6" rx="1" />
+      <rect x="158" y="115" width="8" height="6" rx="1" />
+      <rect x="158" y="130" width="8" height="6" rx="1" />
+    </g>
+  </g>
+
+  <!-- High-Density Printed Circuit Board (PCB) Traces & Bus Lines -->
+  <g id="circuit-traces" stroke="#475569" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.65">
+    <!-- North bus escaping chip (towards pipeline) -->
+    <path d="M 388 474 L 388 410 L 330 352 L 330 260" />
+    <path d="M 403 474 L 403 420 L 345 362 L 345 260" />
+    <path d="M 418 474 L 418 430 L 360 372 L 360 260" />
+
+    <!-- East bus escaping chip towards vertical riser -->
+    <path d="M 526 508 L 590 508 L 620 538 L 666 538" />
+    <path d="M 526 523 L 575 523 L 605 553 L 666 553" />
+    <path d="M 526 538 L 560 538 L 590 568 L 666 568" />
+    <path d="M 526 553 L 545 553 L 575 583 L 666 583" />
+
+    <!-- South bus escaping chip towards bottom border -->
+    <path d="M 418 646 L 418 700 L 370 748 L 370 800" />
+    <path d="M 433 646 L 433 710 L 385 758 L 385 800" />
+    <path d="M 448 646 L 448 720 L 400 768 L 400 800" />
+    <path d="M 463 646 L 463 730 L 415 778 L 415 800" />
+
+    <!-- West bus connecting to analog sensor pads -->
+    <path d="M 354 538 L 290 538 L 260 508 L 190 508" />
+    <path d="M 354 553 L 275 553 L 245 523 L 190 523" />
+    <path d="M 354 568 L 260 568 L 230 538 L 190 538" />
+  </g>
+
+  <!-- Solder Vias, Test Points, and Micro-Capacitors -->
+  <g id="vias-and-testpoints">
+    <!-- Blue logic vias with center drill holes -->
+    <g fill="#2563eb" stroke="#1d4ed8" stroke-width="0.8">
+      <circle cx="330" cy="260" r="3.2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5" />
+      <circle cx="330" cy="260" r="1.2" fill="#2563eb" />
+
+      <circle cx="345" cy="260" r="3.2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5" />
+      <circle cx="345" cy="260" r="1.2" fill="#2563eb" />
+
+      <circle cx="360" cy="260" r="3.2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5" />
+      <circle cx="360" cy="260" r="1.2" fill="#2563eb" />
+
+      <circle cx="190" cy="508" r="3.2" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" />
+      <circle cx="190" cy="508" r="1.2" fill="#0284c7" />
+
+      <circle cx="190" cy="523" r="3.2" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" />
+      <circle cx="190" cy="523" r="1.2" fill="#0284c7" />
+
+      <circle cx="190" cy="538" r="3.2" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" />
+      <circle cx="190" cy="538" r="1.2" fill="#0284c7" />
+    </g>
+
+    <!-- SMD Capacitors Array near processor -->
+    <g fill="#64748b" opacity="0.75">
+      <rect x="335" y="475" width="8" height="4" rx="1" />
+      <rect x="335" y="485" width="8" height="4" rx="1" />
+      <rect x="335" y="495" width="8" height="4" rx="1" />
+
+      <rect x="535" y="475" width="8" height="4" rx="1" />
+      <rect x="535" y="485" width="8" height="4" rx="1" />
+      <rect x="535" y="495" width="8" height="4" rx="1" />
+    </g>
+  </g>
+
+  <!-- Secondary Satellite IC: Sensor Ingestion & Telemetry [x=100, y=600] -->
+  <g id="secondary-chip" transform="translate(80, 580)">
+    <rect x="0" y="0" width="80" height="80" rx="4" fill="#f8fafc" stroke="#64748b" stroke-width="1.5" stroke-opacity="0.8" />
+    <rect x="18" y="18" width="44" height="44" rx="2" fill="url(#chipGrad)" stroke="#0284c7" stroke-width="1.2" stroke-opacity="0.6" />
+    <text x="40" y="38" font-family="monospace" font-size="6.5" font-weight="bold" fill="#0369a1" text-anchor="middle">EDGE OT</text>
+    <text x="40" y="48" font-family="monospace" font-size="5.5" font-weight="bold" fill="#64748b" text-anchor="middle">TELEMETRY</text>
+
+    <!-- Corner notch -->
+    <circle cx="8" cy="8" r="3" fill="#cbd5e1" />
+
+    <!-- External pins -->
+    <g fill="#475569" opacity="0.7">
+      <rect x="14" y="-4" width="4" height="5" />
+      <rect x="26" y="-4" width="4" height="5" />
+      <rect x="38" y="-4" width="4" height="5" />
+      <rect x="50" y="-4" width="4" height="5" />
+      <rect x="62" y="-4" width="4" height="5" />
+
+      <rect x="14" y="79" width="4" height="5" />
+      <rect x="26" y="79" width="4" height="5" />
+      <rect x="38" y="79" width="4" height="5" />
+      <rect x="50" y="79" width="4" height="5" />
+      <rect x="62" y="79" width="4" height="5" />
+    </g>
+  </g>
+
+  <!-- Trace connecting secondary chip to main bus -->
+  <path d="M 160 620 L 220 620 L 260 660 L 360 660" fill="none" stroke="#64748b" stroke-width="1.4" stroke-opacity="0.6" stroke-linejoin="round" />
+
+  <!-- Industrial Engineering Technical Annotations & Coordinate Stamps -->
+  <g font-family="monospace" font-size="7" fill="#64748b" opacity="0.55" letter-spacing="0.5">
+    <!-- Coordinate reference labels -->
+    <text x="24" y="32">OFFSHORE PRODUCTION PLATFORM // BASIN OT-IT BUS</text>
+    <text x="24" y="44">COORDINATES: N 57° 26.480' · W 001° 48.910' [UK SECTOR 21]</text>
+    <text x="24" y="196">HIGH-PRESSURE SUBSEA FLOWLINE // ANSI 1500# DUPLEX</text>
+
+    <text x="480" y="460">PALANTIR DATA FABRIC // RAG EMBEDDINGS 1536-D</text>
+    <text x="480" y="472">DETERMINISTIC GUARDRAILS // HALLUCINATION 0.00%</text>
+
+    <text x="560" y="760">TELEMETRY BAND: 2.4GHz / IEEE 802.15.4e</text>
+    <text x="560" y="772">ISO 14224 ASSET TAXONOMY ENGINE</text>
+
+    <!-- Scale ticks and measurement calipers -->
+    <line x1="24" y1="760" x2="124" y2="760" stroke="#64748b" stroke-width="1" />
+    <line x1="24" y1="756" x2="24" y2="764" stroke="#64748b" stroke-width="1" />
+    <line x1="74" y1="758" x2="74" y2="762" stroke="#64748b" stroke-width="1" />
+    <line x1="124" y1="756" x2="124" y2="764" stroke="#64748b" stroke-width="1" />
+    <text x="74" y="752" text-anchor="middle" font-size="6">100mm SCALE</text>
+  </g>
+</svg>

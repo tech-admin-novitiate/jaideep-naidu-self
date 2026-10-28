@@ -15,16 +15,17 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
 
-const ai = process.env.GEMINI_API_KEY
-  ? new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
+const ai =
+  process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY'
+    ? new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
         },
-      },
-    })
-  : null;
+      })
+    : null;
 
 const JAIDEEP_PROFILE_CONTEXT = `
 JAIDEEP NAIDU - EXECUTIVE PROFILE & GROUNDED CONTEXT:
@@ -100,7 +101,7 @@ app.post('/api/chat', async (req, res) => {
   // If Gemini API is available on server
   if (ai) {
     try {
-      const response = await ai.models.generateContent({
+      const geminiPromise = ai.models.generateContent({
         model: 'gemini-3.8-flash',
         contents: `${enrichedProfileContext}\n\nUser Question: ${trimmed}`,
         config: {
@@ -109,10 +110,15 @@ app.post('/api/chat', async (req, res) => {
         },
       });
 
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Gemini API timeout')), 4000)
+      );
+
+      const response = await Promise.race([geminiPromise, timeoutPromise]);
       const text = response.text || 'Jaideep is awesome. Do you want to know more about him ?';
       return res.json({ reply: text.trim() });
     } catch (err: any) {
-      console.error('Gemini API call failed, falling back to local grounded knowledge:', err?.message || err);
+      console.error('Gemini API call skipped or timed out, falling back to local grounded knowledge:', err?.message || err);
     }
   }
 
@@ -150,6 +156,8 @@ app.post('/api/chat', async (req, res) => {
     lower.includes('lead') ||
     lower.includes('human') ||
     lower.includes('resume') ||
+    lower.includes('what else') ||
+    lower.includes('what do') ||
     lower.includes('cv');
 
   if (!isRelated) {
@@ -186,7 +194,15 @@ app.post('/api/chat', async (req, res) => {
     });
   }
 
-  if (lower.includes('travel') || lower.includes('countr') || lower.includes('52') || lower.includes('photograph') || lower.includes('hobbi')) {
+  if (
+    lower.includes('travel') ||
+    lower.includes('countr') ||
+    lower.includes('52') ||
+    lower.includes('photograph') ||
+    lower.includes('hobbi') ||
+    lower.includes('what else') ||
+    lower.includes('what do')
+  ) {
     return res.json({
       reply:
         "Outside work, Jaideep has explored 52 sovereign nations across 6 continents, giving him acute cultural agility for managing distributed teams. He is also a passionate fine-art photographer who shoots 35mm captures of maritime structures, brutalist geometry, and human stories.",
