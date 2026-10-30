@@ -13,7 +13,7 @@ import { ContactSection } from './components/ContactSection';
 import { Footer } from './components/Footer';
 import { ResumeModal } from './components/ResumeModal';
 import { EditorModal } from './components/EditorModal';
-import { PORTFOLIO_DATA, loadPortfolioData } from './data/portfolioData';
+import { PORTFOLIO_DATA, loadPortfolioData, fetchServerPortfolioData } from './data/portfolioData';
 
 export default function App() {
   const [portfolioData, setPortfolioData] = useState<typeof PORTFOLIO_DATA>(PORTFOLIO_DATA);
@@ -32,9 +32,16 @@ export default function App() {
   const [showJumpToTop, setShowJumpToTop] = useState<boolean>(false);
 
   useEffect(() => {
-    // Load persisted user edits from local storage if present
+    // 1. Initial load from local storage & pre-bundled separate JSON
     const loaded = loadPortfolioData();
     setPortfolioData(loaded);
+
+    // 2. Fetch canonical custom data file from deployment/server
+    fetchServerPortfolioData().then((serverData) => {
+      if (serverData) {
+        setPortfolioData(serverData);
+      }
+    });
 
     // Scroll listener for Jump to Top floating bubble
     const handleScroll = () => {

@@ -26,6 +26,7 @@ import {
   Sliders,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from 'lucide-react';
 import {
   PORTFOLIO_DATA,
@@ -152,11 +153,64 @@ export const EditorModal: React.FC<EditorModalProps> = ({
     }
   };
 
-  const handleSave = () => {
-    savePortfolioData(formData);
-    onSave(formData);
-    setSaveToast('Saved! Knowledge graph and live portfolio updated.');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveToast('Persisting to separate deployment file (src/data/portfolioCustomData.json)...');
+    try {
+      const res = await savePortfolioData(formData);
+      onSave(formData);
+      if (res.success) {
+        setSaveToast('✓ Stored in separate file (src/data/portfolioCustomData.json) & ready for deployment!');
+      } else {
+        setSaveToast(`Saved locally: ${res.message}`);
+      }
+    } catch (e: any) {
+      onSave(formData);
+      setSaveToast('Saved locally in browser cache.');
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSaveToast(''), 4500);
+    }
+  };
+
+  const handleDownloadJSON = () => {
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(formData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', 'portfolioCustomData.json');
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    setSaveToast('Downloaded portfolioCustomData.json file.');
     setTimeout(() => setSaveToast(''), 3500);
+  };
+
+  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (parsed && typeof parsed === 'object') {
+          setFormData((prev) => ({
+            ...prev,
+            ...parsed,
+            pillarHeaders: {
+              ...PORTFOLIO_DATA.pillarHeaders,
+              ...(parsed.pillarHeaders || {}),
+            },
+          }));
+          setSaveToast('Imported JSON data! Click "Save & Push to Deployment File" to persist.');
+        }
+      } catch (err) {
+        alert('Invalid JSON file format.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   const handleReset = () => {
@@ -458,7 +512,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
               Content &amp; Knowledge Graph Editor
             </h3>
             <p className="text-xs text-slate-500">
-              Enter password to upload photos, add timelines, project successes, and expand Jaideep&rsquo;s AI Knowledge Graph.
+              Enter password to edit copy, add timelines, and expand the AI Knowledge Graph. All changes are stored in a dedicated file (<code className="text-slate-700 bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px]">portfolioCustomData.json</code>) and pushed with the website deployment.
             </p>
           </div>
 
@@ -516,22 +570,67 @@ export const EditorModal: React.FC<EditorModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Separate File Persistence Badge */}
+              <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-[11px] text-slate-300">
+                <FileText className="w-3.5 h-3.5 text-blue-400" />
+                <span>File: <strong className="text-white font-mono text-[10px]">portfolioCustomData.json</strong></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1" title="In sync with deployment file" />
+              </div>
+
+              {/* Import JSON file */}
+              <label
+                className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Import/restore custom JSON data file"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Import JSON</span>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleImportJSON}
+                  className="hidden"
+                />
+              </label>
+
+              {/* Download JSON file */}
+              <button
+                onClick={handleDownloadJSON}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Download full portfolioCustomData.json file for offline backup or versioning"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Export JSON</span>
+              </button>
+
+              {/* Reset to defaults */}
               <button
                 onClick={handleReset}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Reset to default CV contents"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset Defaults</span>
+                <span className="hidden sm:inline">Reset</span>
               </button>
 
+              {/* Save & Deploy File Button */}
               <button
                 onClick={handleSave}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-xs"
+                disabled={isSaving}
+                className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 rounded-lg transition-colors shadow-sm cursor-pointer"
+                title="Persist changes to separate file (src/data/portfolioCustomData.json) to be pushed with deployment"
               >
-                <Save className="w-3.5 h-3.5" />
-                <span>Save to Website</span>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving to File...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save &amp; Deploy File</span>
+                  </>
+                )}
               </button>
 
               <button

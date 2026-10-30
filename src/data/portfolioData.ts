@@ -1,3 +1,5 @@
+import customDataJson from './portfolioCustomData.json';
+
 export interface MetricHighlight {
   value: string;
   label: string;
@@ -93,7 +95,7 @@ export interface PillarHeaderConfig {
   highlight: string;
 }
 
-export const PORTFOLIO_DATA = {
+export const DEFAULT_PORTFOLIO_DATA = {
   profile: {
     name: 'Jaideep Naidu',
     title: 'Technical & Product Engineering Leader',
@@ -840,6 +842,16 @@ export const PORTFOLIO_DATA = {
   } as Record<string, PillarHeaderConfig>,
 };
 
+// Export PORTFOLIO_DATA with the separate JSON file pre-merged for build & deployment
+export const PORTFOLIO_DATA = {
+  ...DEFAULT_PORTFOLIO_DATA,
+  ...(customDataJson as unknown as Partial<typeof DEFAULT_PORTFOLIO_DATA>),
+  pillarHeaders: {
+    ...DEFAULT_PORTFOLIO_DATA.pillarHeaders,
+    ...((customDataJson as any)?.pillarHeaders || {}),
+  },
+};
+
 const STORAGE_KEY = 'jaideep_portfolio_custom_content_v1';
 
 export function loadPortfolioData(): typeof PORTFOLIO_DATA {
@@ -863,12 +875,86 @@ export function loadPortfolioData(): typeof PORTFOLIO_DATA {
   return PORTFOLIO_DATA;
 }
 
-export function savePortfolioData(data: typeof PORTFOLIO_DATA): void {
-  if (typeof window === 'undefined') return;
+// Fetch the canonical custom data file persisted on server / website deployment
+export async function fetchServerPortfolioData(): Promise<typeof PORTFOLIO_DATA | null> {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const res = await fetch('/api/portfolio-data');
+    if (res.ok) {
+      const parsed = await res.json();
+      if (parsed && typeof parsed === 'object') {
+        return {
+          ...PORTFOLIO_DATA,
+          ...parsed,
+          pillarHeaders: {
+            ...PORTFOLIO_DATA.pillarHeaders,
+            ...(parsed.pillarHeaders || {}),
+          },
+        };
+      }
+    }
   } catch (e) {
-    console.error('Failed to save portfolio data', e);
+    // Fallback to static deployment asset if served without Node API
+    try {
+      const staticRes = await fetch('/portfolio-data.json');
+      if (staticRes.ok) {
+        const parsed = await staticRes.json();
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...PORTFOLIO_DATA,
+            ...parsed,
+            pillarHeaders: {
+              ...PORTFOLIO_DATA.pillarHeaders,
+              ...(parsed.pillarHeaders || {}),
+            },
+          };
+        }
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
+// Saves data to browser localStorage AND writes to the separate persistent file (src/data/portfolioCustomData.json)
+export async function savePortfolioData(
+  data: typeof PORTFOLIO_DATA
+): Promise<{ success: boolean; message: string; file?: string }> {
+  // 1. Immediately cache in browser localStorage
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.warn('LocalStorage save failed:', e);
+    }
+  }
+
+  // 2. Persist to server separate file for deployment
+  try {
+    const res = await fetch('/api/portfolio-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      return {
+        success: true,
+        file: json.file || 'src/data/portfolioCustomData.json',
+        message: json.message || 'Saved to separate file and ready for website deployment.',
+      };
+    } else {
+      const err = await res.json().catch(() => ({}));
+      return {
+        success: false,
+        message: err.error || 'Saved in local storage; server file write failed.',
+      };
+    }
+  } catch (err: any) {
+    console.warn('Could not reach /api/portfolio-data, saved locally:', err);
+    return {
+      success: true,
+      message: 'Saved locally in browser cache.',
+    };
   }
 }
 
@@ -876,6 +962,6 @@ export function resetPortfolioData(): typeof PORTFOLIO_DATA {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(STORAGE_KEY);
   }
-  return PORTFOLIO_DATA;
+  return DEFAULT_PORTFOLIO_DATA;
 }
 

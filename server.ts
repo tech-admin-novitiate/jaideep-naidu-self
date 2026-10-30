@@ -3,6 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 dotenv.config();
@@ -13,7 +14,79 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
-app.use(express.json());
+// Support larger payload for custom photos and role document notes
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Paths for persistent data files
+const CUSTOM_DATA_PATH = path.resolve(__dirname, 'src', 'data', 'portfolioCustomData.json');
+const PUBLIC_DATA_PATH = path.resolve(__dirname, 'public', 'portfolio-data.json');
+const DIST_DATA_PATH = path.resolve(__dirname, 'dist', 'portfolio-data.json');
+
+// Endpoint: Retrieve stored portfolio data file
+app.get('/api/portfolio-data', (_req, res) => {
+  try {
+    if (fs.existsSync(CUSTOM_DATA_PATH)) {
+      const content = fs.readFileSync(CUSTOM_DATA_PATH, 'utf-8');
+      return res.setHeader('Content-Type', 'application/json').send(content);
+    }
+    if (fs.existsSync(PUBLIC_DATA_PATH)) {
+      const content = fs.readFileSync(PUBLIC_DATA_PATH, 'utf-8');
+      return res.setHeader('Content-Type', 'application/json').send(content);
+    }
+    return res.status(404).json({ error: 'No custom data file found.' });
+  } catch (err: any) {
+    console.error('Error reading custom data file:', err);
+    return res.status(500).json({ error: 'Failed to read data file: ' + err.message });
+  }
+});
+
+// Endpoint: Save updated data from Editor mode directly into separate file for website deployment
+app.post('/api/portfolio-data', (req, res) => {
+  try {
+    const data = req.body;
+    if (!data || typeof data !== 'object') {
+      return res.status(400).json({ error: 'Invalid data format.' });
+    }
+
+    const jsonString = JSON.stringify(data, null, 2);
+
+    // Ensure target directories exist
+    const srcDir = path.dirname(CUSTOM_DATA_PATH);
+    if (!fs.existsSync(srcDir)) {
+      fs.mkdirSync(srcDir, { recursive: true });
+    }
+    const publicDir = path.dirname(PUBLIC_DATA_PATH);
+    if (!fs.existsSync(publicDir)) {
+      fs.mkdirSync(publicDir, { recursive: true });
+    }
+
+    // 1. Write to src/data/portfolioCustomData.json (deployment source file)
+    fs.writeFileSync(CUSTOM_DATA_PATH, jsonString, 'utf-8');
+
+    // 2. Also write to public/portfolio-data.json (for static assets & build distribution)
+    fs.writeFileSync(PUBLIC_DATA_PATH, jsonString, 'utf-8');
+
+    // 3. If dist exists (production build), update it directly
+    const distDir = path.dirname(DIST_DATA_PATH);
+    if (fs.existsSync(distDir)) {
+      fs.writeFileSync(DIST_DATA_PATH, jsonString, 'utf-8');
+    }
+
+    console.log(`[Persistence] Updated separate data file: ${CUSTOM_DATA_PATH} (${jsonString.length} bytes)`);
+
+    return res.json({
+      success: true,
+      file: 'src/data/portfolioCustomData.json',
+      publicFile: 'public/portfolio-data.json',
+      message: 'Portfolio data saved to separate file and ready for website deployment.',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    console.error('Error writing portfolio data file:', err);
+    return res.status(500).json({ error: 'Failed to persist portfolio data: ' + err.message });
+  }
+});
 
 const ai =
   process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY'
@@ -85,6 +158,24 @@ STRICT GROUNDED CONTEXT RULES:
 "Jaideep is awesome. Do you want to know more about him ?"
 3. Keep responses concise, articulate, executive-grade, and grounded strictly in the provided profile facts. Emphasize his $300M+ value unlocked, applied Graph RAG AI at supermajor scale, and human-led engineering philosophy.`;
 
+function getFileKnowledgeContext(): string {
+  try {
+    if (fs.existsSync(CUSTOM_DATA_PATH)) {
+      const data = JSON.parse(fs.readFileSync(CUSTOM_DATA_PATH, 'utf-8'));
+      const kgNotes = (data.knowledgeGraphNotes || [])
+        .map((n: any) => `[${n.category} | ${n.timeline}] ${n.topic}: ${n.details} (Impact: ${n.impact})`)
+        .join('\n');
+      const cvDocs = (data.uploadedCVFiles || [])
+        .map((c: any) => `[CV / Document: ${c.versionLabel} - ${c.roleContext}]\n${c.extractedNotes || ''}`)
+        .join('\n');
+      return [kgNotes, cvDocs].filter(Boolean).join('\n\n');
+    }
+  } catch (e) {
+    // ignore
+  }
+  return '';
+}
+
 // API endpoint for Gemini chat
 app.post('/api/chat', async (req, res) => {
   const { message, customContext } = req.body;
@@ -94,8 +185,10 @@ app.post('/api/chat', async (req, res) => {
   }
 
   const trimmed = message.trim();
-  const enrichedProfileContext = customContext
-    ? `${JAIDEEP_PROFILE_CONTEXT}\n\nADDITIONAL ENRICHED KNOWLEDGE GRAPH NODES & SPECIFIC TIMELINES:\n${customContext}`
+  const fileContext = getFileKnowledgeContext();
+  const effectiveContext = [customContext, fileContext].filter(Boolean).join('\n\n');
+  const enrichedProfileContext = effectiveContext
+    ? `${JAIDEEP_PROFILE_CONTEXT}\n\nADDITIONAL ENRICHED KNOWLEDGE GRAPH NODES & SPECIFIC TIMELINES:\n${effectiveContext}`
     : JAIDEEP_PROFILE_CONTEXT;
 
   // If Gemini API is available on server
